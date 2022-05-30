@@ -115,6 +115,7 @@ class _MyAppState extends State<MyApp> {
   // } catch (err) {}
 
   WeatherResponse? _response;
+  ValueNotifier<bool> isnotLoading = ValueNotifier(false);
 
   Future<void> getpos() async {
     print('hi');
@@ -134,11 +135,12 @@ class _MyAppState extends State<MyApp> {
       setState(() => _response = response);
       print(placemarks[0].locality);
     } catch (err) {}
+    isnotLoading.value = true;
 
     print('bye');
   }
 
-  ValueNotifier<bool> isnotLoading = ValueNotifier(false);
+
 
   @override
   void initState() {
@@ -147,11 +149,14 @@ class _MyAppState extends State<MyApp> {
     });
 
     print("after");
+
     getpos();
+
     print('${_response?.cityName}');
+
     print("before");
 
-    isnotLoading.value = true;
+
     super.initState();
   }
 
@@ -162,8 +167,7 @@ class _MyAppState extends State<MyApp> {
 
             // resizeToAvoidBottomInset : false,
             backgroundColor: Colors.white38,
-            body: isnotLoading.value
-                ? SingleChildScrollView(
+            body:isnotLoading.value?  SingleChildScrollView(
                     physics: NeverScrollableScrollPhysics(),
                     child: Container(
                       // decoration: BoxDecoration(
@@ -452,10 +456,9 @@ class _MyAppState extends State<MyApp> {
                               ]),
                         ),
                       ),
-                    ))
-                : CircularProgressIndicator(
-                    color: Colors.white,
-                  )));
+                    )):CircularProgressIndicator(color: Colors.white,)
+
+        ));
   }
 
   void _search() async {
