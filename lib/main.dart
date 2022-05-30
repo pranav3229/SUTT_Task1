@@ -1,17 +1,15 @@
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:success/services/location_service.dart';
 import 'package:success/services/remote_services.dart';
+
 // import 'package:geolocation/geolocation.dart';
 import 'models/post.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:confetti/confetti.dart';
-
-
-
 
 void main() {
   runApp(MyApp());
@@ -24,25 +22,28 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final _cityTextController = TextEditingController();
-  final tex=TextEditingController();
+  final tex = TextEditingController();
   final _dataService = DataService();
-  var lat= "";
-  var lon="";
+  late double lat;
 
-   void getcurrentlocation() async {
+  late double lon;
+
+  Future<void> getcurrentlocation() async {
     LocationPermission permission;
     permission = await Geolocator.requestPermission();
-    var position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    var lastPositon=await Geolocator.getLastKnownPosition();
+    var position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    var lastPositon = await Geolocator.getLastKnownPosition();
     print(lastPositon);
     setState(() {
-      lat= "${position.latitude}} ";
-      lon= "${position.longitude}";
-
+      lat = position.latitude;
+      lon = position.longitude;
     });
   }
-  String location ='Null, Press Button';
+
+  String location = 'Null, Press Button';
   String Address = 'search';
+
   Future<Position> _getGeoLocationPosition() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -74,9 +75,11 @@ class _MyAppState extends State<MyApp> {
     }
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
-    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
-  Future<void> GetAddressFromLatLong(Position position)async {
+
+  Future<void> GetAddressFromLatLong(Position position) async {
     // List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
     // print(placemarks);
     // Placemark place = placemarks[0];
@@ -88,7 +91,6 @@ class _MyAppState extends State<MyApp> {
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
-
       );
       String myCity = placemarks[0].locality!;
 
@@ -97,8 +99,8 @@ class _MyAppState extends State<MyApp> {
       setState(() => _response = response);
       print(placemarks[0].locality);
     } catch (err) {}
-
   }
+
   // try {
   // List<Placemark> placemarks = await placemarkFromCoordinates(
   // location.latitude,
@@ -112,337 +114,353 @@ class _MyAppState extends State<MyApp> {
   // print(placemarks[0].locality);
   // } catch (err) {}
 
-
-
-
   WeatherResponse? _response;
 
+  Future<void> getpos() async {
+    print('hi');
+    late var response;
+    await getcurrentlocation();
 
+
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        lat,
+        lon,
+      );
+      String myCity = placemarks[0].locality!;
+
+      final response = await _dataService.getWeather(myCity);
+
+      setState(() => _response = response);
+      print(placemarks[0].locality);
+    } catch (err) {}
+
+    print('bye');
+  }
+
+  ValueNotifier<bool> isnotLoading = ValueNotifier(false);
+
+  @override
+  void initState() {
+    isnotLoading.addListener(() {
+      setState(() {});
+    });
+
+    print("after");
+    getpos();
+    print('${_response?.cityName}');
+    print("before");
+
+    isnotLoading.value = true;
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
         home: Scaffold(
 
-
-
-          // resizeToAvoidBottomInset : false,
-          backgroundColor: Colors.white38,
-
-          body: SingleChildScrollView(
-            physics: NeverScrollableScrollPhysics(),
-            child: Container(
-              // decoration: BoxDecoration(
-              //     gradient: RadialGradient(
-              //         center: Alignment(0,0),
-              //         radius: 1.0,
-              //         colors: <Color>[
-              //           Colors.white38,
-              //           Colors.grey,
-              //
-              //         ]
-              //     )
-              // ),
-              child: SafeArea(
-
-                child: Container(
-
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-
-                    children: [
-
-                    Center(
-                      child: SizedBox(
-                      width: 200.0,
-                      height: 100.0,
-                      child: Shimmer.fromColors(
-                        baseColor: Colors.black,
-                        highlightColor: Colors.yellow,
-                        child: Text(
-                          'Weather App',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 40.0,
-                            fontWeight:
-                            FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                  ),
-                    ),
-                      Row(
-                        children: [
-
-                          Expanded(
-                            child: Container(
-                              // decoration: BoxDecoration(
-                              //   gradient: RadialGradient(
-                              //     center: Alignment(0,0),
-                              //     radius: 0.5,
-                              //     colors: <Color>[
-                              //       Colors.white,
-                              //       Colors.tealAccent,
-                              //     ]
-                              //
-                              //   )
-                              // ),
-                              padding: EdgeInsets.all(8),
-                              child: Container(
-
-                                  margin: EdgeInsets.fromLTRB(80, 30, 60, 0),
-
-                                  child: Text(
-                                    '${_response?.weatherInfo.description}°',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(fontSize: 35,),
-                                  )
-                                // Text(_response?.weatherInfo.description)
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // if (_response!=null)
-                        Container(
-                          // decoration: BoxDecoration(
-                          //   gradient: RadialGradient(
-                          //     center: Alignment(0,0),
-                          //     radius: 1.0,
-                          //     colors: <Color>[
-                          //       Colors.white38,
-                          //       Colors.grey,
-                          //       Colors.white,
-                          //
-                          //     ]
-                          //   )
-                          // ),
-
-                          child: Row(
-
-                            children: [
-
-                              SizedBox(width:10,height:50),
-                              SizedBox(
-                                width: 150,
-                                child: TextField(
-                                    controller: _cityTextController,
-                                    decoration: InputDecoration(labelText: 'City'),
-                                    textAlign: TextAlign.center),
-                              ),
-
-                              ElevatedButton(onPressed: _search, child: Text('Search')),
-                              SizedBox(width: 10,),
-                              SizedBox(
-
-
-                                child: Row(
+            // resizeToAvoidBottomInset : false,
+            backgroundColor: Colors.white38,
+            body: isnotLoading.value
+                ? SingleChildScrollView(
+                    physics: NeverScrollableScrollPhysics(),
+                    child: Container(
+                      // decoration: BoxDecoration(
+                      //     gradient: RadialGradient(
+                      //         center: Alignment(0,0),
+                      //         radius: 1.0,
+                      //         colors: <Color>[
+                      //           Colors.white38,
+                      //           Colors.grey,
+                      //
+                      //         ]
+                      //     )
+                      // ),
+                      child: SafeArea(
+                        child: Container(
+                          child: Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Center(
+                                  child: SizedBox(
+                                    width: 200.0,
+                                    height: 100.0,
+                                    child: Shimmer.fromColors(
+                                      baseColor: Colors.black,
+                                      highlightColor: Colors.yellow,
+                                      child: Text(
+                                        'Weather App',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 40.0,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Row(
                                   children: [
-
-                                    ElevatedButton(onPressed: () async{
-                                      Position position = await _getGeoLocationPosition();
-                                      location ='Lat: ${position.latitude} , Long: ${position.longitude}';
-                                      GetAddressFromLatLong(position);
-                                    }, child: Text('Current Location'))
-
-
-                                    // ElevatedButton(onPressed: getcurrentlocation
-                                    //
-                                    // , child: const Text("User current location:  ",)),
-
-                                    // ElevatedButton(onPressed: _search, child: Text('Search'))
+                                    Expanded(
+                                      child: Container(
+                                        // decoration: BoxDecoration(
+                                        //   gradient: RadialGradient(
+                                        //     center: Alignment(0,0),
+                                        //     radius: 0.5,
+                                        //     colors: <Color>[
+                                        //       Colors.white,
+                                        //       Colors.tealAccent,
+                                        //     ]
+                                        //
+                                        //   )
+                                        // ),
+                                        padding: EdgeInsets.all(8),
+                                        child: Container(
+                                            margin: EdgeInsets.fromLTRB(
+                                                80, 30, 60, 0),
+                                            child: Text(
+                                              '${_response?.weatherInfo.description}°',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 35,
+                                              ),
+                                            )
+                                            // Text(_response?.weatherInfo.description)
+                                            ),
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
 
-                        ),
-                      Container(
-                        child: Row(
-                          children: [
-                            SizedBox(width: 170,),
-                            Text(
+                                // if (_response!=null)
+                                Container(
+                                  // decoration: BoxDecoration(
+                                  //   gradient: RadialGradient(
+                                  //     center: Alignment(0,0),
+                                  //     radius: 1.0,
+                                  //     colors: <Color>[
+                                  //       Colors.white38,
+                                  //       Colors.grey,
+                                  //       Colors.white,
+                                  //
+                                  //     ]
+                                  //   )
+                                  // ),
 
-                                '${_response?.cityName}',
-                                    style: TextStyle(fontSize: 30),
-                            )
-                          ],
-                        ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(width: 10, height: 50),
+                                      SizedBox(
+                                        width: 150,
+                                        child: TextField(
+                                            controller: _cityTextController,
+                                            decoration: InputDecoration(
+                                                labelText: 'City'),
+                                            textAlign: TextAlign.center),
+                                      ),
+                                      ElevatedButton(
+                                          onPressed: _search,
+                                          child: Text('Search')),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      SizedBox(
+                                        child: Row(
+                                          children: [
+                                            ElevatedButton(
+                                                onPressed: () async {
+                                                  Position position =
+                                                      await _getGeoLocationPosition();
+                                                  location =
+                                                      'Lat: ${position.latitude} , Long: ${position.longitude}';
+                                                  GetAddressFromLatLong(
+                                                      position);
+                                                },
+                                                child: Text('Current Location'))
 
-                      ),
-                        // Row(
-                        //   children: [
-                        //     Expanded(
-                        //       child: Container(
-                        //         padding: EdgeInsets.all(8),
-                        //         child: Container(
-                        //             margin: EdgeInsets.fromLTRB(40, 80, 60, 170),
-                        //
-                        //             child: Text(
-                        //               '${_response?.weatherInfo.description}°',
-                        //               style: TextStyle(fontSize: 35),
-                        //             )
-                        //           // Text(_response?.weatherInfo.description)
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ],
-                        // ),
-                      // SizedBox(width: 180),
-                      // Row(
-                      //   children: [
-                      //     SizedBox(height: 150),
-                      //     Container(
-                      //       child: Container(
-                      //           margin: EdgeInsets.fromLTRB(40, 40, 60, 0),
-                      //
-                      //
-                      //         // Text(_response?.weatherInfo.description)
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
-                      Container(
-                        // decoration: BoxDecoration(
-                        //     gradient: RadialGradient(
-                        //         center: Alignment(0,0),
-                        //         radius: 1.0,
-                        //         colors: <Color>[
-                        //           Colors.white,
-                        //           Colors.tealAccent,
-                        //
-                        //         ]
-                        //     )
-                        //
-                        // ),
+                                            // ElevatedButton(onPressed: getcurrentlocation
+                                            //
+                                            // , child: const Text("User current location:  ",)),
 
-
-                        child: Row(
-
-
-                            children: [
-                              SizedBox(width: 80),
-                              Text(
-
-
-                                '${_response?.tempInfo.temperature}°',
-                                style: TextStyle(fontSize: 100,
+                                            // ElevatedButton(onPressed: _search, child: Text('Search'))
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ]
-                          // Text(_response?.weatherInfo.description)
+                                Container(
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 170,
+                                      ),
+                                      Text(
+                                        '${_response?.cityName}',
+                                        style: TextStyle(fontSize: 30),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                // Row(
+                                //   children: [
+                                //     Expanded(
+                                //       child: Container(
+                                //         padding: EdgeInsets.all(8),
+                                //         child: Container(
+                                //             margin: EdgeInsets.fromLTRB(40, 80, 60, 170),
+                                //
+                                //             child: Text(
+                                //               '${_response?.weatherInfo.description}°',
+                                //               style: TextStyle(fontSize: 35),
+                                //             )
+                                //           // Text(_response?.weatherInfo.description)
+                                //         ),
+                                //       ),
+                                //     ),
+                                //   ],
+                                // ),
+                                // SizedBox(width: 180),
+                                // Row(
+                                //   children: [
+                                //     SizedBox(height: 150),
+                                //     Container(
+                                //       child: Container(
+                                //           margin: EdgeInsets.fromLTRB(40, 40, 60, 0),
+                                //
+                                //
+                                //         // Text(_response?.weatherInfo.description)
+                                //       ),
+                                //     ),
+                                //   ],
+                                // ),
+                                Container(
+                                  // decoration: BoxDecoration(
+                                  //     gradient: RadialGradient(
+                                  //         center: Alignment(0,0),
+                                  //         radius: 1.0,
+                                  //         colors: <Color>[
+                                  //           Colors.white,
+                                  //           Colors.tealAccent,
+                                  //
+                                  //         ]
+                                  //     )
+                                  //
+                                  // ),
+
+                                  child: Row(children: [
+                                    SizedBox(width: 80),
+                                    Text(
+                                      '${_response?.tempInfo.temperature}°',
+                                      style: TextStyle(
+                                        fontSize: 100,
+                                      ),
+                                    ),
+                                  ]
+                                      // Text(_response?.weatherInfo.description)
+                                      ),
+                                ),
+
+                                Container(
+                                  // decoration: BoxDecoration(
+                                  //     gradient: RadialGradient(
+                                  //         center: Alignment(0,0),
+                                  //         radius: 2.0,
+                                  //         colors: <Color>[
+                                  //           Colors.limeAccent,
+                                  //           Colors.white,
+                                  //
+                                  //         ]
+                                  //     )
+                                  // ),
+
+                                  child: Row(children: [
+                                    SizedBox(width: 140),
+                                    Text(
+                                      'feels like :${_response?.feels_like.feels_like}°',
+                                      style: TextStyle(fontSize: 20),
+                                    ),
+                                  ]
+                                      // Text(_response?.weatherInfo.description)
+                                      ),
+                                ),
+                                Container(
+                                  // decoration: BoxDecoration(
+                                  //     gradient: RadialGradient(
+                                  //         center: Alignment(0,0),
+                                  //         radius: 2,
+                                  //         colors: <Color>[
+                                  //           Colors.limeAccent,
+                                  //           Colors.white,
+                                  //
+                                  //         ]
+                                  //     )
+                                  // ),
+
+                                  child: Row(children: [
+                                    SizedBox(width: 140),
+                                    Text(
+                                      'Humidity :${_response?.humidity.humidity} °',
+                                      style: TextStyle(fontSize: 20),
+                                    ),
+                                  ]
+                                      // Text(_response?.weatherInfo.description)
+                                      ),
+                                ),
+                                // Container(
+                                //
+                                //
+                                //   child: Row(
+                                //
+                                //
+                                //
+                                //       children: [
+                                //         SizedBox(width:100),
+                                //         Text(
+                                //           'Visibility :${_response?.visibility.visibility}°',
+                                //           style: TextStyle(fontSize: 20),
+                                //         ),
+                                //       ]
+                                //     // Text(_response?.weatherInfo.description)
+                                //   ),
+                                // ),
+
+                                SizedBox(height: 20),
+                                // SizedBox(
+                                //
+                                //
+                                //   child: Row(
+                                //     children: [
+                                //
+                                //       ElevatedButton(onPressed: () async{
+                                //         Position position = await _getGeoLocationPosition();
+                                //         location ='Lat: ${position.latitude} , Long: ${position.longitude}';
+                                //         GetAddressFromLatLong(position);
+                                //       }, child: Text('Current Location'))
+                                //
+                                //
+                                //       // ElevatedButton(onPressed: getcurrentlocation
+                                //       //
+                                //       // , child: const Text("User current location:  ",)),
+                                //
+                                //       // ElevatedButton(onPressed: _search, child: Text('Search'))
+                                //     ],
+                                //   ),
+                                // ),
+                              ]),
                         ),
                       ),
-
-                      Container(
-                        // decoration: BoxDecoration(
-                        //     gradient: RadialGradient(
-                        //         center: Alignment(0,0),
-                        //         radius: 2.0,
-                        //         colors: <Color>[
-                        //           Colors.limeAccent,
-                        //           Colors.white,
-                        //
-                        //         ]
-                        //     )
-                        // ),
-
-
-                        child: Row(
-
-
-
-                            children: [
-                              SizedBox(width:140),
-                              Text(
-                                'feels like :${_response?.feels_like.feels_like}°',
-                                style: TextStyle(fontSize: 20),
-                              ),
-                            ]
-                          // Text(_response?.weatherInfo.description)
-                        ),
-                      ),
-                      Container(
-                        // decoration: BoxDecoration(
-                        //     gradient: RadialGradient(
-                        //         center: Alignment(0,0),
-                        //         radius: 2,
-                        //         colors: <Color>[
-                        //           Colors.limeAccent,
-                        //           Colors.white,
-                        //
-                        //         ]
-                        //     )
-                        // ),
-
-
-                        child: Row(
-
-
-
-                            children: [
-                              SizedBox(width:140),
-                              Text(
-                                'Humidity :${_response?.humidity.humidity} °',
-                                style: TextStyle(fontSize: 20),
-                              ),
-                            ]
-                          // Text(_response?.weatherInfo.description)
-                        ),
-                      ),
-                      // Container(
-                      //
-                      //
-                      //   child: Row(
-                      //
-                      //
-                      //
-                      //       children: [
-                      //         SizedBox(width:100),
-                      //         Text(
-                      //           'Visibility :${_response?.visibility.visibility}°',
-                      //           style: TextStyle(fontSize: 20),
-                      //         ),
-                      //       ]
-                      //     // Text(_response?.weatherInfo.description)
-                      //   ),
-                      // ),
-
-                      SizedBox(height:20),
-                // SizedBox(
-                //
-                //
-                //   child: Row(
-                //     children: [
-                //
-                //       ElevatedButton(onPressed: () async{
-                //         Position position = await _getGeoLocationPosition();
-                //         location ='Lat: ${position.latitude} , Long: ${position.longitude}';
-                //         GetAddressFromLatLong(position);
-                //       }, child: Text('Current Location'))
-                //
-                //
-                //       // ElevatedButton(onPressed: getcurrentlocation
-                //       //
-                //       // , child: const Text("User current location:  ",)),
-                //
-                //       // ElevatedButton(onPressed: _search, child: Text('Search'))
-                //     ],
-                //   ),
-                // ),
-              ]),
-            ),
-          ),
-        ))));
+                    ))
+                : CircularProgressIndicator(
+                    color: Colors.white,
+                  )));
   }
 
   void _search() async {
     final response = await _dataService.getWeather(_cityTextController.text);
-    final r=await _getGeoLocationPosition();
+    final r = await _getGeoLocationPosition();
     setState(() => _response = response);
   }
-
 }
