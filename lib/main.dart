@@ -1,11 +1,15 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:success/services/location_service.dart';
 import 'package:success/services/remote_services.dart';
 // import 'package:geolocation/geolocation.dart';
 import 'models/post.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:confetti/confetti.dart';
+
 
 
 
@@ -20,7 +24,96 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final _cityTextController = TextEditingController();
+  final tex=TextEditingController();
   final _dataService = DataService();
+  var lat= "";
+  var lon="";
+
+   void getcurrentlocation() async {
+    LocationPermission permission;
+    permission = await Geolocator.requestPermission();
+    var position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    var lastPositon=await Geolocator.getLastKnownPosition();
+    print(lastPositon);
+    setState(() {
+      lat= "${position.latitude}} ";
+      lon= "${position.longitude}";
+
+    });
+  }
+  String location ='Null, Press Button';
+  String Address = 'search';
+  Future<Position> _getGeoLocationPosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      await Geolocator.openLocationSettings();
+      return Future.error('Location services are disabled.');
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Permissions are denied, next time you could try
+        // requesting permissions again (this is also where
+        // Android's shouldShowRequestPermissionRationale
+        // returned true. According to Android guidelines
+        // your App should show an explanatory UI now.
+        return Future.error('Location permissions are denied');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+    // When we reach here, permissions are granted and we can
+    // continue accessing the position of the device.
+    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  }
+  Future<void> GetAddressFromLatLong(Position position)async {
+    // List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    // print(placemarks);
+    // Placemark place = placemarks[0];
+    // // Address = ' ${place.locality}';
+    // setState(()  {
+    //   Address = ' ${place.locality}';
+    // });
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+
+      );
+      String myCity = placemarks[0].locality!;
+
+      final response = await _dataService.getWeather(myCity);
+
+      setState(() => _response = response);
+      print(placemarks[0].locality);
+    } catch (err) {}
+
+  }
+  // try {
+  // List<Placemark> placemarks = await placemarkFromCoordinates(
+  // location.latitude,
+  // location.longitude,
+  // );
+  // String myCity = placemarks[0].locality!;
+  //
+  // final response = await _dataService.getWeather(myCity);
+  //
+  // setState(() => _response = response);
+  // print(placemarks[0].locality);
+  // } catch (err) {}
+
+
+
 
   WeatherResponse? _response;
 
@@ -130,7 +223,8 @@ class _MyAppState extends State<MyApp> {
                           child: Row(
 
                             children: [
-                              SizedBox(width:100,height:50),
+
+                              SizedBox(width:10,height:50),
                               SizedBox(
                                 width: 150,
                                 child: TextField(
@@ -138,11 +232,47 @@ class _MyAppState extends State<MyApp> {
                                     decoration: InputDecoration(labelText: 'City'),
                                     textAlign: TextAlign.center),
                               ),
-                              ElevatedButton(onPressed: _search, child: Text('Search'))
+
+                              ElevatedButton(onPressed: _search, child: Text('Search')),
+                              SizedBox(width: 10,),
+                              SizedBox(
+
+
+                                child: Row(
+                                  children: [
+
+                                    ElevatedButton(onPressed: () async{
+                                      Position position = await _getGeoLocationPosition();
+                                      location ='Lat: ${position.latitude} , Long: ${position.longitude}';
+                                      GetAddressFromLatLong(position);
+                                    }, child: Text('Current Location'))
+
+
+                                    // ElevatedButton(onPressed: getcurrentlocation
+                                    //
+                                    // , child: const Text("User current location:  ",)),
+
+                                    // ElevatedButton(onPressed: _search, child: Text('Search'))
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
 
                         ),
+                      Container(
+                        child: Row(
+                          children: [
+                            SizedBox(width: 170,),
+                            Text(
+
+                                '${_response?.cityName}',
+                                    style: TextStyle(fontSize: 30),
+                            )
+                          ],
+                        ),
+
+                      ),
                         // Row(
                         //   children: [
                         //     Expanded(
@@ -206,6 +336,7 @@ class _MyAppState extends State<MyApp> {
                           // Text(_response?.weatherInfo.description)
                         ),
                       ),
+
                       Container(
                         // decoration: BoxDecoration(
                         //     gradient: RadialGradient(
@@ -255,7 +386,7 @@ class _MyAppState extends State<MyApp> {
                             children: [
                               SizedBox(width:140),
                               Text(
-                                'Humidity :${_response?.humidity.humidity}°',
+                                'Humidity :${_response?.humidity.humidity} °',
                                 style: TextStyle(fontSize: 20),
                               ),
                             ]
@@ -281,18 +412,37 @@ class _MyAppState extends State<MyApp> {
                       // ),
 
                       SizedBox(height:20),
-                      // ElevatedButton(onPressed: _search, child: Text('Search'))
-                    ],
-                  ),
-                ),
-              ),
+                // SizedBox(
+                //
+                //
+                //   child: Row(
+                //     children: [
+                //
+                //       ElevatedButton(onPressed: () async{
+                //         Position position = await _getGeoLocationPosition();
+                //         location ='Lat: ${position.latitude} , Long: ${position.longitude}';
+                //         GetAddressFromLatLong(position);
+                //       }, child: Text('Current Location'))
+                //
+                //
+                //       // ElevatedButton(onPressed: getcurrentlocation
+                //       //
+                //       // , child: const Text("User current location:  ",)),
+                //
+                //       // ElevatedButton(onPressed: _search, child: Text('Search'))
+                //     ],
+                //   ),
+                // ),
+              ]),
             ),
           ),
-        ));
+        ))));
   }
 
   void _search() async {
     final response = await _dataService.getWeather(_cityTextController.text);
+    final r=await _getGeoLocationPosition();
     setState(() => _response = response);
   }
+
 }
